@@ -8,7 +8,7 @@ from database.main import write_etf_dividend_to_db
 def crawler_etf_dps_us(etf_list_df):
 
     all_dividends = [] 
-    for _, etf in etf_list_df.iterrows():
+    for etf in etf_list_df:
         ticker = etf['etf_id']
 
         try: 
