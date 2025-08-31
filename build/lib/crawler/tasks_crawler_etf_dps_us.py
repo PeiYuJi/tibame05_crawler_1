@@ -10,8 +10,8 @@ def crawler_etf_dps_us(etf_list_df):
     all_dividends = [] 
     for etf in etf_list_df:
         ticker = etf['etf_id']
-        try: 
 
+        try: 
             dividends = yf.Ticker(ticker).dividends
             if not dividends.empty:
                 dividends_df = dividends.reset_index()
@@ -26,8 +26,8 @@ def crawler_etf_dps_us(etf_list_df):
             print(f"{ticker} 發生錯誤: {e}")
     
     if all_dividends:
-        result_dividends = pd.concat(all_dividends, ignore_index=True)
-        print(result_dividends.head())
-        write_etf_dividend_to_db(result_dividends)
+        etf_dividends_df = pd.concat(all_dividends, ignore_index=True)
+        print(etf_dividends_df.head())
+        write_etf_dividend_to_db(etf_dividends_df)
     else:
         print("沒有任何 ETF 有配息資料。")

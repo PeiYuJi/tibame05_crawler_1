@@ -5,36 +5,15 @@ import requests
 from crawler.worker import app
 import pandas_ta as ta
 import numpy as np
-from database.main import write_etf_backtest_results_to_db, write_etf_daily_price_to_db
+from database.main import write_etf_backtest_results_to_db
 
 
 # 註冊 task, 有註冊的 task 才可以變成任務發送給 rabbitmq
 @app.task()
-def backtest_utils_us(url):
-    
-    # 建立請求（可加 headers 避免被擋）
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-    }
-    resp = requests.get(url, headers=headers)
-    resp.encoding = resp.apparent_encoding
+def backtest_utils_us(etf_list_df):
 
-    # 解析 HTML
-    soup = BeautifulSoup(resp.text, "html.parser")
-    table = soup.find("table")
-
-    # 擷取資料
-    etf_list = []
-    if table:
-        rows = table.find_all("tr")
-        for row in rows[1:]:  # 跳過表頭
-            cols = row.find_all("td")
-            if len(cols) >= 2:
-                code = cols[0].get_text(strip=True)
-                name = cols[1].get_text(strip=True)
-                etf_list.append((code, name))
-
-    etf_codes = [code for code, _ in etf_list]
+    for etf in etf_list_df:
+        etf_codes = etf['etf_id']
         
     start_date = '2015-05-01'
     end_date = pd.Timestamp.today().strftime('%Y-%m-%d')
@@ -96,13 +75,7 @@ def backtest_utils_us(url):
         columns_order = ['etf_id', 'date', 'adj_close','close','high', 'low', 'open','volume',
                         'rsi', 'ma5', 'ma20', 'macd_line', 'macd_signal', 'macd_hist',
                         'pct_k', 'pct_d', 'daily_return', 'cumulative_return']
-        df = df[columns_order]
-
-        write_etf_daily_price_to_db(df)
-
-        # 儲存技術指標結果
-        print("開始 2️⃣ 進行技術指標計算與績效分析")
-
+        daily_price_df = df[columns_order]
 
 
         # 確保 date 欄位為 datetime
@@ -153,7 +126,5 @@ def backtest_utils_us(url):
     # 指定欄位輸出順序
     desired_order = ["etf_id", "backtest_start", "backtest_end", "total_return", "cagr", "max_drawdown", "sharpe_ratio"]
     summary_df = summary_df[desired_order]
-    summary_df = pd.DataFrame(summary_df)
-    write_etf_backtest_results_to_db(summary_df)
-
-    # return summary_df
+    etf_backtest_df = pd.DataFrame(summary_df)
+    write_etf_backtest_results_to_db(etf_backtest_df)

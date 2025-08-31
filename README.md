@@ -3,7 +3,7 @@
 
 pipenv shell
 
-
+pipenv install sqlalchemy
 
     pipenv install python-dotenv
     pipenv install beautifulsoup4

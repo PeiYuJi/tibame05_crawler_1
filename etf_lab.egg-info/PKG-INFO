@@ -12,7 +12,7 @@ Description-Content-Type: text/markdown
 
 pipenv shell
 
-
+pipenv install sqlalchemy
 
     pipenv install python-dotenv
     pipenv install beautifulsoup4

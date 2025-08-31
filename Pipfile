@@ -10,6 +10,7 @@ beautifulsoup4 = "*"
 yfinance = "*"
 pandas-ta = "*"
 python-dotenv = "*"
+sqlalchemy = "*"
 
 [dev-packages]
 
