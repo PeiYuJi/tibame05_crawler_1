@@ -8,7 +8,7 @@ Classifier: Development Status :: 3 - Alpha
 Description-Content-Type: text/markdown
 
 # crawler
-
+pipenv install pymysql
 
 pipenv shell
 

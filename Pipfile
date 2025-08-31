@@ -12,6 +12,7 @@ pandas-ta = "*"
 python-dotenv = "*"
 sqlalchemy = "*"
 pymysql = "*"
+celery = "*"
 
 [dev-packages]
 
