@@ -1,5 +1,5 @@
 # crawler
-
+pipenv install pymysql
 
 pipenv shell
 
