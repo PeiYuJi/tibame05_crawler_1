@@ -11,6 +11,7 @@ yfinance = "*"
 pandas-ta = "*"
 python-dotenv = "*"
 sqlalchemy = "*"
+pymysql = "*"
 
 [dev-packages]
 
