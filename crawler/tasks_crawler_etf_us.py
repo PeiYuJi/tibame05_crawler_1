@@ -9,7 +9,9 @@ from database.main import write_etf_daily_price_to_db
 def crawler_etf_us(etf_list_df):
     
     # 取得 ETF 代碼清單
-    etf_codes = [etf["etf_id"] for etf in etf_list_df]       
+    for etf in etf_list_df:
+        etf_codes = etf['etf_id']
+         
     start_date = '2015-05-01'
     end_date = pd.Timestamp.today().strftime('%Y-%m-%d')
 
@@ -71,8 +73,3 @@ def crawler_etf_us(etf_list_df):
             write_etf_daily_price_to_db(etf_daily_price_df)
         except Exception as e:
             failed_tickers.append(r)
-
-    return {
-        "success": list(set(etf_codes) - set(failed_tickers)),
-        "failed": failed_tickers
-    }
