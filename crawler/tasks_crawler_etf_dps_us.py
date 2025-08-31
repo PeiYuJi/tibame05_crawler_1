@@ -8,10 +8,10 @@ from database.main import write_etf_dividend_to_db
 def crawler_etf_dps_us(etf_list_df):
 
     all_dividends = [] 
-    for etf in etf_list_df:
+    for _, etf in etf_list_df.iterrows():
         ticker = etf['etf_id']
-        try: 
 
+        try: 
             dividends = yf.Ticker(ticker).dividends
             if not dividends.empty:
                 dividends_df = dividends.reset_index()
