@@ -66,11 +66,13 @@ def crawler_etf_us(etf_list_df):
                         'rsi', 'ma5', 'ma20', 'macd_line', 'macd_signal', 'macd_hist',
                         'pct_k', 'pct_d', 'daily_return', 'cumulative_return']
         df = df[columns_order]
+
+        
+        df.replace([np.inf, -np.inf], np.nan, inplace=True)
         df = df.replace([np.inf, -np.inf], np.nan)
-        df = df.dropna(subset=[
-    'rsi', 'ma5', 'ma20', 'macd_line', 'macd_signal', 'macd_hist',
-    'pct_k', 'pct_d', 'daily_return', 'cumulative_return'
-])
+        #df = df.dropna(subset=[
+    #'rsi', 'ma5', 'ma20', 'macd_line', 'macd_signal', 'macd_hist',
+    #'pct_k', 'pct_d', 'daily_return', 'cumulative_return'])
         all_etf_data.append(df)
 
     # Step 4️⃣ 合併所有 ETF 成一張總表

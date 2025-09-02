@@ -41,6 +41,7 @@ end_date = pd.Timestamp.today().strftime('%Y-%m-%d')
 
 failed_tickers = []
 all_etf_data = []
+summary_df = []
 for r in tickers:
     print(f"正在下載：{r}")
     try:
