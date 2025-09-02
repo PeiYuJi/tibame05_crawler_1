@@ -1,15 +1,13 @@
 import pandas as pd
 import yfinance as yf
 import pandas_ta as ta
-
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
+import os
 
-
-us_etf_url = "https://tw.tradingview.com/markets/etfs/funds-usa/"
-# 發送 HTTP 請求獲取網站內容
-response = requests.get(us_etf_url)
+crawler_url = "https://tw.tradingview.com/markets/etfs/funds-usa/"
+    # 發送 HTTP 請求獲取網站內容
+response = requests.get(crawler_url)
 response.encoding = 'utf-8'  # 確保中文編碼正確
 
     # 解析 HTML
@@ -29,65 +27,76 @@ for row in rows:
         currency = "USD"  # 手動補上幣別
         etf_codes.append((code, name, region, currency))
 
-    # 將資料放入 DataFrame
+# 將資料放入 DataFrame
 etf_list_df = pd.DataFrame(etf_codes, columns=["etf_id", "etf_name", "region", "currency"])
-         
+etf_list = etf_list_df.to_dict(orient="records") 
+
+tickers = [etf["etf_id"] for etf in etf_list]
+
+    
 start_date = '2015-05-01'
 end_date = pd.Timestamp.today().strftime('%Y-%m-%d')
 
 failed_tickers = []
-
-for r in etf_codes:
+all_etf_data = []
+for r in tickers:
     print(f"正在下載：{r}")
     try:
         df = yf.download(r, start=start_date, end=end_date, auto_adjust=False)
         df = df[df["Volume"] > 0].ffill()
+        df.reset_index(inplace=True)
+        df.rename(columns={
+            "Date": "date",
+            "Adj Close": "adj_close",
+            "Close": "close",
+            "High": "high",
+            "Low": "low",
+            "Open": "open",
+            "Volume": "volume"
+        }, inplace=True)
         if df.empty:
             raise ValueError("下載結果為空")
-            
-        if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.droplevel(1)
-            df.columns.name = None
-
-            df.reset_index(inplace=True)
-            df.rename(columns={
-                "Date": "date",
-                "Adj Close": "adj_close",
-                "Close": "close",
-                "High": "high",
-                "Low": "low",
-                "Open": "open",
-                "Volume": "volume"
-            }, inplace=True)
-
-        
-            # RSI (14) (相對強弱指標)
-            df["rsi"] = ta.rsi(df["close"], length=14)
-
-            # MA5、MA20（移動平均線）（也可以使用 df['close'].rolling(5).mean())）
-            df["ma5"] = ta.sma(df["close"], length=5)
-            df["ma20"] = ta.sma(df["close"], length=20)
-
-            # MACD（移動平均收斂背離指標）
-            macd = ta.macd(df["close"], fast=12, slow=26, signal=9)
-            df["macd_line"] = macd["MACD_12_26_9"]
-            df["macd_signal"] = macd["MACDs_12_26_9"]
-            df["macd_hist"] = macd["MACDh_12_26_9"]
-
-            # KD 指標（STOCH: 隨機震盪指標）
-            stoch = ta.stoch(df["high"], df["low"], df["close"], k=14, d=3, smooth_k=3)
-            df["pct_k"] = stoch["STOCHk_14_3_3"]
-            df["pct_d"] = stoch["STOCHd_14_3_3"]
-
-            # 增加該日報酬率與累積報酬指數
-            df['daily_return'] = df['adj_close'].pct_change()
-            df['cumulative_return'] = (1 + df['daily_return']).cumprod()
-            df.insert(0, "etf_id", r)  # 新增一欄「etf_id」
-            print (df)
-            #df.columns = ["etf_id","date", "dividend_per_unit"]    # 調整欄位名稱
-            columns_order = ['etf_id', 'date', 'adj_close','close','high', 'low', 'open','volume',
-                            'rsi', 'ma5', 'ma20', 'macd_line', 'macd_signal', 'macd_hist',
-                            'pct_k', 'pct_d', 'daily_return', 'cumulative_return']
-            etf_daily_price_df = df[columns_order]
     except Exception as e:
+        print(f"[⚠️ 錯誤] {r} 下載失敗：{e}")
         failed_tickers.append(r)
+        continue
+    df.columns = df.columns.droplevel(1)  # 把 'Price' 這層拿掉
+
+    # RSI (14) (相對強弱指標)
+    df["rsi"] = ta.rsi(df["close"], length=14)
+
+    # MA5、MA20（移動平均線）（也可以使用 df['close'].rolling(5).mean())）
+    df["ma5"] = ta.sma(df["close"], length=5)
+    df["ma20"] = ta.sma(df["close"], length=20)
+
+    # MACD（移動平均收斂背離指標）
+    macd = ta.macd(df["close"], fast=12, slow=26, signal=9)
+    df["macd_line"] = macd["MACD_12_26_9"]
+    df["macd_signal"] = macd["MACDs_12_26_9"]
+    df["macd_hist"] = macd["MACDh_12_26_9"]
+
+    # KD 指標（STOCH: 隨機震盪指標）
+    stoch = ta.stoch(df["high"], df["low"], df["close"], k=14, d=3, smooth_k=3)
+    df["pct_k"] = stoch["STOCHk_14_3_3"]
+    df["pct_d"] = stoch["STOCHd_14_3_3"]
+
+    # 增加該日報酬率與累積報酬指數
+    df['daily_return'] = df['adj_close'].pct_change()
+    df['cumulative_return'] = (1 + df['daily_return']).cumprod()
+    df.insert(0, "etf_id", r)  # 新增一欄「etf_id」
+    print (df)
+    #df.columns = ["etf_id","date", "dividend_per_unit"]    # 調整欄位名稱
+    columns_order = ['etf_id', 'date', 'adj_close','close','high', 'low', 'open','volume',
+                     'rsi', 'ma5', 'ma20', 'macd_line', 'macd_signal', 'macd_hist',
+                     'pct_k', 'pct_d', 'daily_return', 'cumulative_return']
+    df = df[columns_order]
+    all_etf_data.append(df)
+
+# Step 4️⃣ 合併所有 ETF 成一張總表
+if all_etf_data:
+    combined_df = pd.concat(all_etf_data, ignore_index=True)
+    combined_output_path = "Output/combined_etf_data.csv"
+    combined_df.to_csv(combined_output_path, index=False, encoding="utf-8")
+    print(f"\n✅ 所有 ETF 已合併儲存至：{combined_output_path}")
+else:
+    print("\n⚠️ 沒有任何 ETF 資料可合併，請檢查資料來源")
