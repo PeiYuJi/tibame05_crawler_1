@@ -1,13 +1,10 @@
 README.md
-pyproject.toml
 setup.py
 crawler/__init__.py
 crawler/aaa.py
-crawler/aaa1.py
-crawler/bbb.py
-crawler/ccc.py
 crawler/config.py
 crawler/producer_main_tw.py
+crawler/producer_main_us copy.py
 crawler/producer_main_us.py
 crawler/tasks_backtest_utils_tw.py
 crawler/tasks_backtest_utils_us.py
