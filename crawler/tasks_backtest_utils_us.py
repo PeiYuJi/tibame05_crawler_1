@@ -10,8 +10,7 @@ from database.main import write_etf_backtest_results_to_db
 @app.task()
 def backtest_utils_us(etf_list_df):
 
-    for etf in etf_list_df:
-        tickers = etf['etf_id']
+    tickers = [etf["etf_id"] for etf in etf_list_df]    
 
     start_date = '2015-05-01'
     end_date = pd.Timestamp.today().strftime('%Y-%m-%d')
