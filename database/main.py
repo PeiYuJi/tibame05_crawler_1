@@ -122,22 +122,6 @@ etf_backtest_results_table = Table(
 # 如果資料表不存在，則建立它們
 metadata.create_all(engine)
 
-
-def clean_inf_and_nan(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    將 DataFrame 裡的 inf、-inf 替換成 NaN，再將 NaN 轉為 None。
-
-    parameters:
-        df (pd.DataFrame): 原始資料
-
-    returns:
-        pd.DataFrame: 已清理的資料
-    """
-    df = df.replace([np.inf, -np.inf], np.nan)
-    df = df.astype(object).where(pd.notnull(df), None)
-    return df
-
-
 def filter_and_replace_nan(df: pd.DataFrame, required_fields: list) -> pd.DataFrame:
     """
     將 DataFrame 中的 NaN 轉為 None，並過濾掉主鍵缺失的資料列。

@@ -1,60 +1,47 @@
 import pandas as pd
-import numpy as np
-import pandas_ta as ta
-import os
 import yfinance as yf
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+import pandas_ta as ta
+import requests
 from bs4 import BeautifulSoup
-import time
-import csv
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+import os
+import numpy as np
 
-os.makedirs("Output/historical_price_data", exist_ok=True)
 
-options = Options()
-options.add_argument("--headless")
-options.add_argument("--disable-gpu")
-options.add_argument("--no-sandbox")
+crawler_url = "https://tw.tradingview.com/markets/etfs/funds-usa/"
+    # 發送 HTTP 請求獲取網站內容
+response = requests.get(crawler_url)
+response.encoding = 'utf-8'  # 確保中文編碼正確
 
-driver = webdriver.Chrome(options=options)
+    # 解析 HTML
+soup = BeautifulSoup(response.text, 'html.parser')
 
-url = "https://tw.tradingview.com/markets/etfs/funds-usa/"
-driver.get(url)
-
-# 等待表格載入
-WebDriverWait(driver, 15).until(
-    EC.presence_of_element_located((By.CSS_SELECTOR, "table tbody tr"))
-)
-
-html = driver.page_source
-soup = BeautifulSoup(html, "html.parser")
-
-etf_data = []
-
-# 逐列抓取
+etf_codes = []
+    # 解析表格數據
 rows = soup.select("table tbody tr")
 for row in rows:
     code_tag = row.select_one('a[href^="/symbols/"]')
     name_tag = row.select_one("sup")
-    
+        
     if code_tag and name_tag:
         code = code_tag.get_text(strip=True)
         name = name_tag.get_text(strip=True)
-        etf_data.append((code, name))
+        region = "US"  # 手動補上國別
+        currency = "USD"  # 手動補上幣別
+        etf_codes.append((code, name, region, currency))
 
-driver.quit()
+# 將資料放入 DataFrame
+etf_list_df = pd.DataFrame(etf_codes, columns=["etf_id", "etf_name", "region", "currency"])
+etf_list = etf_list_df.to_dict(orient="records") 
 
-etf_codes = [code for code, _ in etf_data]
+tickers = [etf["etf_id"] for etf in etf_list]
+
     
 start_date = '2015-05-01'
 end_date = pd.Timestamp.today().strftime('%Y-%m-%d')
 
 failed_tickers = []
-summary_df = [] 
-for r in etf_codes:
+all_etf_data = []
+for r in tickers:
     print(f"正在下載：{r}")
     try:
         df = yf.download(r, start=start_date, end=end_date, auto_adjust=False)
@@ -77,7 +64,6 @@ for r in etf_codes:
         continue
     df.columns = df.columns.droplevel(1)  # 把 'Price' 這層拿掉
 
-    
     # RSI (14) (相對強弱指標)
     df["rsi"] = ta.rsi(df["close"], length=14)
 
@@ -106,20 +92,6 @@ for r in etf_codes:
                      'rsi', 'ma5', 'ma20', 'macd_line', 'macd_signal', 'macd_hist',
                      'pct_k', 'pct_d', 'daily_return', 'cumulative_return']
     df = df[columns_order]
-    # 儲存技術指標結果
-    print("開始 2️⃣ 進行技術指標計算與績效分析")
-    output_dir = "Output/output_with_indicators"              # 存儲含技術指標的結果
-    os.makedirs(output_dir, exist_ok=True)
-    csv_name = os.path.join(output_dir, f"{r}_with_indicators.csv")
-    df.to_csv(csv_name, encoding="utf-8", index=False)
-
-
-
-   
-
-
-
-
    
     # 確保 date 欄位為 datetime
     if not pd.api.types.is_datetime64_any_dtype(df["date"]):
