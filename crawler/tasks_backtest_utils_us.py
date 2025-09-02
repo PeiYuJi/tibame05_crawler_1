@@ -1,10 +1,8 @@
 import pandas as pd
 import yfinance as yf
-from bs4 import BeautifulSoup
-import requests
-from crawler.worker import app
 import pandas_ta as ta
 import numpy as np
+from crawler.worker import app
 from database.main import write_etf_backtest_results_to_db
 
 
@@ -13,23 +11,18 @@ from database.main import write_etf_backtest_results_to_db
 def backtest_utils_us(etf_list_df):
 
     for etf in etf_list_df:
-        etf_codes = etf['etf_id']
-        
+        tickers = etf['etf_id']
+
     start_date = '2015-05-01'
     end_date = pd.Timestamp.today().strftime('%Y-%m-%d')
 
     failed_tickers = []
-    summary_df = [] 
-    for r in etf_codes:
+    summary_df = []
+    for r in tickers:
         print(f"正在下載：{r}")
         try:
             df = yf.download(r, start=start_date, end=end_date, auto_adjust=False)
             df = df[df["Volume"] > 0].ffill()
-
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.droplevel(1)
-            df.columns.name = None
-
             df.reset_index(inplace=True)
             df.rename(columns={
                 "Date": "date",
@@ -46,8 +39,8 @@ def backtest_utils_us(etf_list_df):
             print(f"[⚠️ 錯誤] {r} 下載失敗：{e}")
             failed_tickers.append(r)
             continue
+        df.columns = df.columns.droplevel(1)  # 把 'Price' 這層拿掉
 
-        
         # RSI (14) (相對強弱指標)
         df["rsi"] = ta.rsi(df["close"], length=14)
 
@@ -75,9 +68,8 @@ def backtest_utils_us(etf_list_df):
         columns_order = ['etf_id', 'date', 'adj_close','close','high', 'low', 'open','volume',
                         'rsi', 'ma5', 'ma20', 'macd_line', 'macd_signal', 'macd_hist',
                         'pct_k', 'pct_d', 'daily_return', 'cumulative_return']
-        daily_price_df = df[columns_order]
-
-
+        df = df[columns_order]
+    
         # 確保 date 欄位為 datetime
         if not pd.api.types.is_datetime64_any_dtype(df["date"]):
             df["date"] = pd.to_datetime(df["date"])
@@ -126,5 +118,6 @@ def backtest_utils_us(etf_list_df):
     # 指定欄位輸出順序
     desired_order = ["etf_id", "backtest_start", "backtest_end", "total_return", "cagr", "max_drawdown", "sharpe_ratio"]
     summary_df = summary_df[desired_order]
+
     etf_backtest_df = pd.DataFrame(summary_df)
     write_etf_backtest_results_to_db(etf_backtest_df)
