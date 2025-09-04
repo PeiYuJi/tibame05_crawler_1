@@ -3,7 +3,8 @@ import yfinance as yf
 import pandas_ta as ta
 import numpy as np
 from crawler.worker import app
-from database.main import write_etf_backtest_results_to_db,write_etf_daily_price_to_db
+from database.main import write_etf_backtest_results_to_db
+
 
 # 註冊 task, 有註冊的 task 才可以變成任務發送給 rabbitmq
 @app.task()
@@ -13,7 +14,7 @@ def backtest_utils_us(etf_list_df):
 
     start_date = '2015-05-01'
     end_date = pd.Timestamp.today().strftime('%Y-%m-%d')
-    all_etf_data = []
+
     failed_tickers = []
     summary_df = []
     for r in tickers:
@@ -67,20 +68,7 @@ def backtest_utils_us(etf_list_df):
                         'rsi', 'ma5', 'ma20', 'macd_line', 'macd_signal', 'macd_hist',
                         'pct_k', 'pct_d', 'daily_return', 'cumulative_return']
         df = df[columns_order]
-        df.replace([np.inf, -np.inf], np.nan, inplace=True)
-        df = df.replace([np.inf, -np.inf], np.nan)
-            #df = df.dropna(subset=[
-        #'rsi', 'ma5', 'ma20', 'macd_line', 'macd_signal', 'macd_hist',
-        #'pct_k', 'pct_d', 'daily_return', 'cumulative_return'])
-        all_etf_data.append(df)
-
-        # Step 4️⃣ 合併所有 ETF 成一張總表
-        if all_etf_data:
-            daily_price_df = pd.concat(all_etf_data, ignore_index=True)
-            daily_price_df = daily_price_df[columns_order]
-
-        
-            
+    
         # 確保 date 欄位為 datetime
         if not pd.api.types.is_datetime64_any_dtype(df["date"]):
             df["date"] = pd.to_datetime(df["date"])
@@ -131,5 +119,4 @@ def backtest_utils_us(etf_list_df):
     summary_df = summary_df[desired_order]
 
     etf_backtest_df = pd.DataFrame(summary_df)
-    write_etf_daily_price_to_db(daily_price_df)
     write_etf_backtest_results_to_db(etf_backtest_df)
