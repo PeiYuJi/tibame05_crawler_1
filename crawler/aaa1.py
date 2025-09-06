@@ -1,6 +1,5 @@
 import pandas as pd
 import yfinance as yf
-import pandas_ta as ta
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -45,6 +44,7 @@ for row in rows:
 # 將資料放入 DataFrame
 etf_list_df = pd.DataFrame(etf_codes, columns=["etf_id", "etf_name", "region", "currency",
                                                "expense_ratio","inception_date"])
+print(etf_list_df)
 etf_list = etf_list_df.to_dict(orient="records") 
 print(etf_list)
 tickers = [etf["etf_id"] for etf in etf_list]
