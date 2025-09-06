@@ -3,6 +3,7 @@ import yfinance as yf
 import pandas_ta as ta
 import requests
 from bs4 import BeautifulSoup
+from datetime import datetime
 import os
 
 crawler_url = "https://tw.tradingview.com/markets/etfs/funds-usa/"
@@ -25,12 +26,27 @@ for row in rows:
         name = name_tag.get_text(strip=True)
         region = "US"  # 手動補上國別
         currency = "USD"  # 手動補上幣別
-        etf_codes.append((code, name, region, currency))
+  
+        try:
+            etf = yf.Ticker(code)
+            info = etf.info
+            expense_ratio = info.get("netExpenseRatio", None)
+            inception_ts = info.get("fundInceptionDate", None)
+            inception_date = (
+            datetime.fromtimestamp(inception_ts).strftime("%Y-%m-%d") if inception_ts else None
+                    )
+        except Exception as e:
+                    print(f"查詢 {code} 時發生錯誤: {e}")
+                    expense_ratio = None
+                    inception_date = None
+
+        etf_codes.append((code, name, region, currency, expense_ratio, inception_date))
 
 # 將資料放入 DataFrame
-etf_list_df = pd.DataFrame(etf_codes, columns=["etf_id", "etf_name", "region", "currency"])
+etf_list_df = pd.DataFrame(etf_codes, columns=["etf_id", "etf_name", "region", "currency",
+                                               "expense_ratio","inception_date"])
 etf_list = etf_list_df.to_dict(orient="records") 
 print(etf_list)
 tickers = [etf["etf_id"] for etf in etf_list]
 
-print(tickers)
+#print(tickers)
